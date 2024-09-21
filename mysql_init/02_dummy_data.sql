@@ -17,12 +17,12 @@ INSERT INTO POSLANEC (ID_OSOBA) VALUES
 (5);
 
 -- Insert dummy data into HLASOVANI table
-INSERT INTO HLASOVANI (VYSLEDEK_HLASOVANI, NAZEV_HLASOVANI, DATUM_HLASOVANI, URL_HLASOVANI) VALUES
-('Schváleno', 'Hlasování o rozpočtu', '2023-06-01', 'http://example.com/hlasovani/1'),
-('Zamítnuto', 'Hlasování o novém zákonu', '2023-06-02', 'http://example.com/hlasovani/2'),
-('Schváleno', 'Hlasování o daňové reformě', '2023-06-03', 'http://example.com/hlasovani/3'),
-('Zamítnuto', 'Hlasování o reformě školství', '2023-06-04', 'http://example.com/hlasovani/4'),
-('Schváleno', 'Hlasování o důchodové reformě', '2023-06-05', 'http://example.com/hlasovani/5');
+INSERT INTO HLASOVANI (VYSLEDEK_HLASOVANI, NAZEV_HLASOVANI, DATUM_HLASOVANI) VALUES
+('Schváleno', 'Hlasování o rozpočtu', '2023-06-01'),
+('Zamítnuto', 'Hlasování o novém zákonu', '2023-06-02'),
+('Schváleno', 'Hlasování o daňové reformě', '2023-06-03'),
+('Zamítnuto', 'Hlasování o reformě školství', '2023-06-04'),
+('Schváleno', 'Hlasování o důchodové reformě', '2023-06-05');
 
 -- Insert dummy data into POSLANEC_HLASOVANI table
 INSERT INTO POSLANEC_HLASOVANI (ID_POSLANEC, ID_HLASOVANI, VYSLEDEK) VALUES
@@ -38,12 +38,12 @@ INSERT INTO POSLANEC_HLASOVANI (ID_POSLANEC, ID_HLASOVANI, VYSLEDEK) VALUES
 (5, 5, 'Pro');
 
 -- Insert dummy data into TISKY table
-INSERT INTO TISKY (NAZEV_TISK) VALUES
-('Návrh zákona o rozpočtu'),
-('Návrh nového zákona'),
-('Návrh daňové reformy'),
-('Návrh reformy školství'),
-('Návrh důchodové reformy');
+INSERT INTO TISKY (NAZEV_TISK, URL_TISK) VALUES
+('Návrh zákona o rozpočtu', 'https://example.com/rozpocet'),
+('Návrh nového zákona', 'https://example.com/novy_zakon'),
+('Návrh daňové reformy', 'https://example.com/danove_reformy'),
+('Návrh reformy školství', 'https://example.com/reforma_skolstvi'),
+('Návrh důchodové reformy', 'https://example.com/duchodove_reformy');
 
 -- Insert dummy data into HIST table
 INSERT INTO HIST (ID_TISK, ID_HLASOVANI) VALUES
@@ -52,3 +52,4 @@ INSERT INTO HIST (ID_TISK, ID_HLASOVANI) VALUES
 (3, 3),
 (4, 4),
 (5, 5);
+
