@@ -1,31 +1,53 @@
+-- Create the database if it doesn't exist
+CREATE DATABASE IF NOT EXISTS myapp;
+
+-- Use the database
 USE myapp;
 
--- Create tables based on your schema
-CREATE TABLE typ_organu (
-    id_typ_org INT PRIMARY KEY,
-    typ_id_typ_org INT,
-    nazev_typ_org_cz VARCHAR(255),
-    nazev_typ_org_en VARCHAR(255),
-    typ_org_obecny INT,
-    priorita INT,
-    FOREIGN KEY (typ_id_typ_org) REFERENCES typ_organu(id_typ_org),
-    FOREIGN KEY (typ_org_obecny) REFERENCES typ_organu(id_typ_org)
+-- Create the hlasovani table
+CREATE TABLE IF NOT EXISTS HLASOVANI (
+    ID_HLASOVANI INT AUTO_INCREMENT PRIMARY KEY,
+    VYSLEDEK_HLASOVANI TEXT NOT NULL,
+    NAZEV_HLASOVANI TEXT NOT NULL,
+    DATUM_HLASOVANI DATE NOT NULL,
+    URL_HLASOVANI TEXT NOT NULL
 );
 
-CREATE TABLE typ_funkce (
-    id_typ_funkce INT PRIMARY KEY,
-    id_typ_org INT,
-    typ_funkce_cz VARCHAR(255),
-    typ_funkce_en VARCHAR(255),
-    priorita INT,
-    typ_funkce_obecny INT,
-    FOREIGN KEY (id_typ_org) REFERENCES typ_organu(id_typ_org)
+-- Create the osoba table
+CREATE TABLE IF NOT EXISTS OSOBA (
+    ID_OSOBA INT AUTO_INCREMENT PRIMARY KEY,
+    JMENO_OSOBA VARCHAR(255) NOT NULL,
+    PRIJMENI_OSOBA VARCHAR(255) NOT NULL
 );
 
--- Add more CREATE TABLE statements for other tables in your schema
+-- Create the poslanec table
+CREATE TABLE IF NOT EXISTS POSLANEC (
+    ID_POSLANEC INT AUTO_INCREMENT PRIMARY KEY,
+    ID_OSOBA INT,
+    FOREIGN KEY (ID_OSOBA) REFERENCES OSOBA(ID_OSOBA)
+);
 
--- You can also add INSERT statements to populate tables with initial data
-INSERT INTO typ_organu (id_typ_org, nazev_typ_org_cz, nazev_typ_org_en, priorita) 
-VALUES (1, 'Poslanecká sněmovna', 'Chamber of Deputies', 1);
+-- Create the poslanec_hlasovani table
+CREATE TABLE IF NOT EXISTS POSLANEC_HLASOVANI (
+    ID_POSLANEC INT,
+    ID_HLASOVANI INT,
+    VYSLEDEK VARCHAR(255) NOT NULL,
+    FOREIGN KEY (ID_HLASOVANI) REFERENCES HLASOVANI(ID_HLASOVANI),
+    FOREIGN KEY (ID_POSLANEC) REFERENCES POSLANEC(ID_POSLANEC),
+    PRIMARY KEY (ID_POSLANEC, ID_HLASOVANI)
+);
 
--- Add more INSERT statements as needed
+-- Create the tisky table
+CREATE TABLE IF NOT EXISTS TISKY (
+    ID_TISK INT AUTO_INCREMENT PRIMARY KEY,
+    NAZEV_TISK TEXT
+);
+
+-- Create the hist table
+CREATE TABLE IF NOT EXISTS HIST (
+    ID_HIST INT AUTO_INCREMENT PRIMARY KEY,
+    ID_TISK INT,
+    ID_HLASOVANI INT,
+    FOREIGN KEY (ID_TISK) REFERENCES TISKY(ID_TISK),
+    FOREIGN KEY (ID_HLASOVANI) REFERENCES HLASOVANI(ID_HLASOVANI)
+);
