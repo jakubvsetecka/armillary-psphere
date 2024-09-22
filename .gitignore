@@ -31,3 +31,7 @@ mysql_data/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# PSP files
+*.unl
+*.zip
