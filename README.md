@@ -41,3 +41,8 @@ to get get rid of the data but keep the database, run:
 ```
 docker-compose exec backend python backend/truncate_tables.py
 ```
+
+### How to get embeddings?
+```
+curl -X POST "http://localhost:8080/embedding" --data '{"content":"some text to embed"}'
+```
