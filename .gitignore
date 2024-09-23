@@ -35,3 +35,13 @@ Thumbs.db
 # PSP files
 *.unl
 *.zip
+
+
+# Testing llama-server files
+llama_server/build
+llama_server/llama-b3807-bin-ubuntu-x64.zip
+llama_server/llama.cpp
+llama_server/snowflake-arctic-embed-s
+llama_server/.venv
+llama_server/model-f16.gguf
+llama_server/model-q8_0.gguf

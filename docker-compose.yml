@@ -26,7 +26,7 @@ services:
       FLASK_ENV: development
       DATABASE_URL: mysql://user:password@database/myapp
     volumes:
-      - ./backend:/app  # Add this line
+      - ./backend:/app
 
   frontend:
     build: ./frontend
@@ -39,8 +39,15 @@ services:
       - WATCHPACK_POLLING=true
       - FAST_REFRESH=false
     volumes:
-      - ./frontend:/app  # Add this line
-      - /app/node_modules  # This prevents overwriting node_modules with the host's
+      - ./frontend:/app
+      - /app/node_modules
+
+  llama_server:
+    build: 
+      context: ./llama_server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
 
 volumes:
   mysql_data:
