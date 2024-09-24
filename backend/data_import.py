@@ -85,7 +85,7 @@ def import_poslanec_hlasovani():
                         break
                     try:
                         cursor.execute("INSERT INTO poslanec_hlasovani (ID_POSLANEC, ID_HLASOVANI, VYSLEDEK) VALUES (%s, %s, %s)",
-                                (row[0], row[1], row[2]))
+                                (row[1], row[2], row[3]))
                     except Exception as e:
                         print(f"Error processing poslanec_hlasovani row: {row}")
                         print(f"Error message: {str(e)}")
