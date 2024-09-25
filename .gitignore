@@ -45,3 +45,6 @@ llama_server/snowflake-arctic-embed-s
 llama_server/.venv
 llama_server/model-f16.gguf
 llama_server/model-q8_0.gguf
+
+# logs
+*.log

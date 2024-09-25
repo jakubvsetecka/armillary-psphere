@@ -105,8 +105,6 @@ def hlasovani_tisk_generator() -> Generator[Tuple[int, int, int, int], None, Non
         cursor.execute(query)
 
         for (id_hlasovani, ct_tisk, cislo_za_tisk, id_org_obd) in cursor:
-            print(f"Processing hlasovani_id: {id_hlasovani}")
-            print(f"ct_tisk: {ct_tisk}, cislo_za_tisk: {cislo_za_tisk}, id_org_obd: {id_org_obd}")
             yield id_hlasovani, ct_tisk, cislo_za_tisk, id_org_obd
     except Exception as e:
         print(f"An error occurred in generator: {str(e)}")
@@ -177,7 +175,6 @@ def get_text_from_url(url):
         pdf_url = get_pdf_url(url)
         if not pdf_url:
             raise ValueError("Failed to find the PDF link on the webpage.")
-        print(f"Found PDF URL: {pdf_url}")
 
         # Download the PDF
         pdf_file = download_pdf(pdf_url)
@@ -189,7 +186,6 @@ def get_text_from_url(url):
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
-    print("Successfully extracted text from the PDF.")
     return pdf_text
 
 def get_poslanci_scores(poslanci_votes, text_left_score, lib_text_score):
@@ -207,8 +203,10 @@ def get_poslanci_scores(poslanci_votes, text_left_score, lib_text_score):
         elif vote in ["B", "N"]:
             left_score = -text_left_score
             lib_score = -lib_text_score
+        else:
+            continue
 
-    poslanci_scores.append((poslanec_id, (left_score, lib_score)))
+        poslanci_scores.append((poslanec_id, (left_score, lib_score)))
 
     return poslanci_scores
 
@@ -254,10 +252,7 @@ def run():
     leftism_vector, libertarian_vector = get_vectors()
 
     for idx, (hlasovani_id, ct_tisk, cislo_za_tisk, id_org_obd) in enumerate(hlasovani_tisk_generator()):
-        if idx > 1:
-            break
-
-        print(f"Processing hlasovani_id: {hlasovani_id}")
+        print(f"{idx}.: processing hlasovani_id: {hlasovani_id}")
 
         poslanec_results = get_poslanec_results(hlasovani_id)
 
