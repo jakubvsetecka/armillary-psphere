@@ -100,8 +100,8 @@ def import_tisky():
             try:
                 druh_tisk = int(row[1])
                 if druh_tisk in (1, 2):
-                    cursor.execute("INSERT INTO tisky (ID_TISK, DRUH_TISK, NAZEV_TISK, URL_TISK) VALUES (%s, %s, %s, %s)",
-                              (row[0], druh_tisk, row[15], row[19]))
+                    cursor.execute("INSERT INTO tisky (ID_TISK, DRUH_TISK, CT_TISK, CISLO_ZA_TISK, ID_ORG_OBD, NAZEV_TISK) VALUES (%s, %s, %s, %s, %s, %s)",
+                              (row[0], druh_tisk, row[3], row[4], row[7], row[15]))
             except Exception as e:
                 print(f"Error processing tisky row: {row}")
                 print(f"Error message: {str(e)}")
