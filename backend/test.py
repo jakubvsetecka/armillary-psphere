@@ -4,12 +4,14 @@ import numpy as np
 
 from bs4 import BeautifulSoup
 import re
+import io
+from PyPDF2 import PdfReader
 
 import mysql.connector
 from typing import Generator, Tuple, List
 
 def get_embedding(content):
-    url = "http://localhost:8080/embedding"
+    url = "http://llama_server:8080/embedding"
     data = {"content": content[:1000]}
     headers = {"Content-Type": "application/json"}
     try:
@@ -26,7 +28,10 @@ def calculate_difference_vector(left_concepts, right_concepts):
     right_embeddings = np.array([get_embedding(concept) for concept in right_concepts])
 
     # Calculate difference vectors
-    diff_vectors = [left - right for left, right in zip(left_embeddings, right_embeddings)]
+    try:
+        diff_vectors = [left - right for left, right in zip(left_embeddings, right_embeddings)]
+    except Exception as e:
+        raise ValueError(f"Error calculating difference vectors: {str(e)}")
 
     # Average the difference vectors
     difference_vector = np.mean(diff_vectors, axis=0)
@@ -67,35 +72,14 @@ def calculate_score(word, vector):
     word_embedding = get_embedding(word)
     return np.dot(word_embedding, vector)
 
-def get_full_law_text(url):
-    response = requests.get(url)
+def get_scores_from_text(text, leftism_vector, libertarian_vector):
 
-    # Parse the XML content
-    soup = BeautifulSoup(response.text, 'xml')
-
-    # Find the div with id 'main-content'
-    main_content = soup.find('div', {'id': 'main-content'})
-
-    if main_content:
-        # Extract all text from the main content
-        full_text = main_content.get_text(separator=' ', strip=True)
-
-        # Remove extra whitespace
-        full_text = re.sub(r'\s+', ' ', full_text).strip()
-
-        # Remove any remaining HTML entities
-        full_text = re.sub(r'&[a-zA-Z]+;', '', full_text)
-
-        return full_text
-    else:
-        return "Could not find the main-content div"
-
-def get_scores_for_law(url, leftism_vector, libertarian_vector):
-    full_law_text = get_full_law_text(url)
+    # truncate the text to 1000 characters
+    text = text[:1000]
 
     # Calculate scores
-    leftism_score = calculate_score(full_law_text, leftism_vector)
-    libertarian_score = calculate_score(full_law_text, libertarian_vector)
+    leftism_score = calculate_score(text, leftism_vector)
+    libertarian_score = calculate_score(text, libertarian_vector)
 
     return leftism_score, libertarian_score
 
@@ -107,25 +91,25 @@ def get_db_connection():
         database="myapp"
     )
 
-def hlasovani_url_generator() -> Generator[Tuple[int, str], None, None]:
-    """
-    Generator that yields ID_HLASOVANI and URL_TISK connected through the HIST table.
-    """
+def hlasovani_tisk_generator() -> Generator[Tuple[int, int, int, int], None, None]:
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(buffered=True)  # Use buffered cursor
 
     try:
         query = """
-        SELECT h.ID_HLASOVANI, t.URL_TISK
+        SELECT h.ID_HLASOVANI, t.CT_TISK, t.CISLO_ZA_TISK, t.ID_ORG_OBD
         FROM HLASOVANI h
         JOIN HIST hi ON h.ID_HLASOVANI = hi.ID_HLASOVANI
         JOIN TISKY t ON hi.ID_TISK = t.ID_TISK
         """
         cursor.execute(query)
 
-        for (id_hlasovani, url_tisk) in cursor:
-            yield (id_hlasovani, url_tisk)
-
+        for (id_hlasovani, ct_tisk, cislo_za_tisk, id_org_obd) in cursor:
+            print(f"Processing hlasovani_id: {id_hlasovani}")
+            print(f"ct_tisk: {ct_tisk}, cislo_za_tisk: {cislo_za_tisk}, id_org_obd: {id_org_obd}")
+            yield id_hlasovani, ct_tisk, cislo_za_tisk, id_org_obd
+    except Exception as e:
+        print(f"An error occurred in generator: {str(e)}")
     finally:
         cursor.close()
         conn.close()
@@ -152,12 +136,146 @@ def get_poslanec_results(hlasovani_id: int) -> List[Tuple[int, str]]:
         cursor.close()
         conn.close()
 
+def get_url(obdobi: int, cislo_tisku: int, cisla_za: int):
+    """
+    Function that takes obdobi, cislo_tisku and cisla_za and returns URL
+    """
+
+    # convert obdobi identifier to obdobi
+    obdobi -= 164
+
+    return f"https://www.psp.cz/sqw/text/tiskt.sqw?O={obdobi}&CT={cislo_tisku}&CT1={cisla_za}"
+
+def get_pdf_url(webpage_url):
+    response = requests.get(webpage_url)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        pdf_link = soup.select_one('.document-media-attachments-x ul li.pdf a')
+        if pdf_link:
+            return 'https://www.psp.cz' + pdf_link['href']
+    return None
+
+def download_pdf(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return io.BytesIO(response.content)
+    else:
+        print(f"Failed to download PDF. Status code: {response.status_code}")
+        return None
+
+def extract_text_from_pdf(pdf_file):
+    text = ""
+    pdf_reader = PdfReader(pdf_file)
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+def get_text_from_url(url):
+    pdf_text = ""
+    try:
+        # Get the PDF URL
+        pdf_url = get_pdf_url(url)
+        if not pdf_url:
+            raise ValueError("Failed to find the PDF link on the webpage.")
+        print(f"Found PDF URL: {pdf_url}")
+
+        # Download the PDF
+        pdf_file = download_pdf(pdf_url)
+        if not pdf_file:
+            raise ValueError("Failed to download the PDF.")
+
+        # Extract text from the PDF
+        pdf_text = extract_text_from_pdf(pdf_file)
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+    print("Successfully extracted text from the PDF.")
+    return pdf_text
+
+def get_poslanci_scores(poslanci_votes, text_left_score, lib_text_score):
+    """
+    Function that takes a list of tuples containing ID_POSLANEC and VYSLEDEK
+    and returns a list of tuples containing ID_POSLANEC and SCORE.
+    """
+    poslanci_scores = []
+    for poslanec_id, vote in poslanci_votes:
+        left_score = "nan"
+        lib_score = "nan"
+        if vote == "A":
+            left_score = text_left_score
+            lib_score = lib_text_score
+        elif vote in ["B", "N"]:
+            left_score = -text_left_score
+            lib_score = -lib_text_score
+
+    poslanci_scores.append((poslanec_id, (left_score, lib_score)))
+
+    return poslanci_scores
+
+def update_hlasovani_scores(hlasovani_id, scores):
+    """
+    Function that updates the hlasovani score in the database.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+        UPDATE HLASOVANI
+        SET LEFT_SCORE = %s, LIB_SCORE = %s
+        WHERE ID_HLASOVANI = %s
+        """
+        cursor.execute(query, (scores[0], scores[1], hlasovani_id))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_poslanec_hlasovani_scores(poslanec_id, hlasovani_id, scores):
+    """
+    Function that updates the poslanec_hlasovani score in the database.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+        UPDATE POSLANEC_HLASOVANI
+        SET LEFT_SCORE = %s, LIB_SCORE = %s
+        WHERE ID_POSLANEC = %s AND ID_HLASOVANI = %s
+        """
+        cursor.execute(query, (scores[0], scores[1], poslanec_id, hlasovani_id))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+def run():
+    leftism_vector, libertarian_vector = get_vectors()
+
+    for idx, (hlasovani_id, ct_tisk, cislo_za_tisk, id_org_obd) in enumerate(hlasovani_tisk_generator()):
+        if idx > 1:
+            break
+
+        print(f"Processing hlasovani_id: {hlasovani_id}")
+
+        poslanec_results = get_poslanec_results(hlasovani_id)
+
+        # get text from URL
+        tisk_url = get_url(id_org_obd, ct_tisk, cislo_za_tisk)
+        tisk_text = get_text_from_url(tisk_url)
+
+        # get scores
+        leftism_score, libertarian_score = get_scores_from_text(tisk_text, leftism_vector, libertarian_vector)
+        poslanci_scores = get_poslanci_scores(poslanec_results, leftism_score, libertarian_score)
+
+        # update tables with scores
+        update_hlasovani_scores(hlasovani_id, (leftism_score, libertarian_score))
+        for poslanec_id, scores in poslanci_scores:
+            update_poslanec_hlasovani_scores(poslanec_id, hlasovani_id, scores)
 
 if __name__ == "__main__":
-    # leftism_vector, libertarian_vector = get_vectors()
-
-    for hlasovani_id, url_tisk in hlasovani_url_generator():
-        if url_tisk != "":
-            print(f"URL: {url_tisk}")
-        # print(f"Hlasovani ID: {hlasovani_id}, URL: {url_tisk}")
-    #leftism_score, libertarian_score = get_scores_for_law(url, leftism_vector, libertarian_vector)
+    try:
+        run()
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")

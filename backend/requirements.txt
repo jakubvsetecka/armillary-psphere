@@ -8,3 +8,4 @@ mysql-connector-python
 requests
 numpy
 bs4
+PyPDF2
